@@ -1,5 +1,5 @@
 from typing import Dict, Any, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class ActivityBase(BaseModel):
@@ -8,8 +8,9 @@ class ActivityBase(BaseModel):
     id: str
     type: str
     
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(
+        populate_by_name=True
+    )
 
 
 class Person(ActivityBase):
@@ -41,8 +42,9 @@ class Collection(ActivityBase):
     total_items: Optional[int] = Field(default=None, alias="totalItems")
     items: List[Dict[str, Any]] = []
     
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(
+        populate_by_name=True
+    )
 
 
 class OrderedCollection(Collection):
@@ -50,5 +52,6 @@ class OrderedCollection(Collection):
     type: str = "OrderedCollection"
     ordered_items: List[Dict[str, Any]] = Field(default=[], alias="orderedItems")
     
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(
+        populate_by_name=True
+    )

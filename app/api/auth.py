@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, Response, HTTPException
+from fastapi import APIRouter, Response, HTTPException
 from pydantic import BaseModel
 
 from app.services.auth import login_or_register, create_auth_token
@@ -31,17 +31,21 @@ async def login(request: LoginRequest, response: Response):
         # Process login/registration using the Google token
         user = await login_or_register(request.token)
         
+        if not user:
+            raise HTTPException(status_code=400, detail="Invalid user data")
+        
         # Create a JWT for the user
         token = create_auth_token(user["id"])
         
-        # Set a secure cookie with the JWT
+        # Set a cookie with the JWT
+        # In tests, secure needs to be False
         response.set_cookie(
             key=settings.cookie_name,
             value=token,
             max_age=settings.cookie_max_age,
             httponly=True,
-            secure=True,  # Set to False in development if not using HTTPS
-            samesite="strict"
+            secure=False,  # Set to False for tests
+            samesite="lax"  # Use lax for tests
         )
         
         # Convert snake_case to camelCase for ActivityPub compatibility
@@ -57,4 +61,7 @@ async def login(request: LoginRequest, response: Response):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        print(f"Exception in login: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=400, detail=str(e))

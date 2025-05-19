@@ -1,6 +1,5 @@
 from typing import Dict, Any
-import datetime
-import json
+from datetime import datetime, UTC, timedelta
 from jose import jwt, JWTError
 
 from app.core.settings import Settings
@@ -13,7 +12,7 @@ settings = Settings()
 
 def create_auth_token(user_id: str) -> str:
     """Create a JWT token for a user."""
-    expiration = datetime.datetime.utcnow() + datetime.timedelta(seconds=settings.cookie_max_age)
+    expiration = datetime.now(UTC) + timedelta(seconds=settings.cookie_max_age)
     
     payload = {
         "sub": user_id,

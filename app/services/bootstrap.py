@@ -1,11 +1,11 @@
-import datetime
+from datetime import datetime, UTC
 from app.services.activity import get_activity_store
 
 
 async def bootstrap_system() -> None:
     """Bootstrap system collections and namespace objects."""
     store = get_activity_store()
-    
+
     # Create system namespace collection
     ns_collection = {
         "@context": "https://www.w3.org/ns/activitystreams",
@@ -13,27 +13,27 @@ async def bootstrap_system() -> None:
         "type": "Collection",
         "name": "Namespace Definitions",
         "summary": "Custom type definitions for the ActivityServe system",
-        "published": datetime.datetime.utcnow().isoformat(),
-        "items": []
+        "published": datetime.now(UTC).isoformat(),
+        "items": [],
     }
-    
-    await store.set("/ns", ns_collection)
-    
+
+    await store.store(ns_collection)
+
     # Create Identity type in namespace
     identity_type = {
         "@context": [
             "https://www.w3.org/ns/activitystreams",
-            {"activity-serve": "https://example.org/ns/"}
+            {"activity-serve": "https://example.org/ns/"},
         ],
         "id": "/ns/Identity",
         "type": "Link",
         "name": "Identity",
         "summary": "Identity links a person to an authentication provider",
-        "published": datetime.datetime.utcnow().isoformat()
+        "published": datetime.now(UTC).isoformat(),
     }
-    
-    await store.set("/ns/Identity", identity_type)
-    
+
+    await store.store(identity_type)
+
     # Create system behaviors collection
     behaviors_collection = {
         "@context": "https://www.w3.org/ns/activitystreams",
@@ -41,8 +41,8 @@ async def bootstrap_system() -> None:
         "type": "Collection",
         "name": "System Behaviors",
         "summary": "Registered behaviors for the ActivityServe system",
-        "published": datetime.datetime.utcnow().isoformat(),
-        "items": []
+        "published": datetime.now(UTC).isoformat(),
+        "items": [],
     }
-    
-    await store.set("/sys/behaviors", behaviors_collection)
+
+    await store.store(behaviors_collection)

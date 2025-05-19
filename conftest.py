@@ -1,11 +1,9 @@
 import pytest
-from typing import Dict, Any, AsyncGenerator
 from fastapi.testclient import TestClient
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
 
 from app.main import create_app
-from app.services.activity import ActivityComponents, activity_components
+from app.services.activity import activity_components
 from app.core.settings import Settings
 
 

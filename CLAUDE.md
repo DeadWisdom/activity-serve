@@ -55,6 +55,7 @@
 - Avoid try/except blocks if there is a better way of doing it
 - Avoid try/except blocks around lots of code, ideally it should be around only one function call
 - Avoid catching very general exceptions like `Exception` unless the intent is to continue execution
+- Use datetime.datetime.now(datetime.UTC) instead of datetime.datetime.utcnow()
 
 # Also
 

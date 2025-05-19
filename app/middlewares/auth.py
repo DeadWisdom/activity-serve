@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from typing import Optional
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 import structlog
@@ -38,12 +38,15 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 user_id = payload.get("sub")
                 
                 if user_id:
-                    # Get the user from the database
-                    user = await get_user_by_id(user_id)
-                    
-                    if user:
-                        # Set the user in the request state
-                        request.state.user = user
+                    try:
+                        # Get the user from the database
+                        user = await get_user_by_id(user_id)
+                        
+                        if user:
+                            # Set the user in the request state
+                            request.state.user = user
+                    except Exception as e:
+                        logger.error("Error getting user", error=str(e), user_id=user_id)
         
         # Continue processing the request
         return await call_next(request)

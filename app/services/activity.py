@@ -5,6 +5,7 @@ from app.core.settings import Settings
 
 class ActivityComponents:
     """Global container for ActivityStore and ActivityBus components."""
+
     store: ActivityStore | None = None
     bus: ActivityBus | None = None
 
@@ -15,24 +16,33 @@ activity_components = ActivityComponents()
 def init_activity_components(settings: Settings) -> None:
     """Initialize ActivityStore and ActivityBus based on configuration."""
     # Initialize activity store based on backend setting
-    if settings.activity_store_backend == "elasticsearch" and settings.elasticsearch_url:
-        from activity_store.backends.elasticsearch import ElasticsearchBackend
+    if (
+        settings.activity_store_backend == "elasticsearch"
+        and settings.elasticsearch_url
+    ):
+        from activity_store.backends import ElasticsearchBackend
+
         backend = ElasticsearchBackend(settings.elasticsearch_url)
     else:
-        from activity_store.backends.memory import MemoryBackend
+        from activity_store.backends.memory import (
+            InMemoryStorageBackend as MemoryBackend,
+        )
+
         backend = MemoryBackend()
-    
+
     # Initialize activity store cache based on cache setting
     if settings.activity_store_cache == "redis" and settings.redis_url:
         from activity_store.cache.redis import RedisCache
+
         cache = RedisCache(settings.redis_url)
     else:
-        from activity_store.cache.memory import MemoryCache
+        from activity_store.cache.memory import InMemoryCacheBackend as MemoryCache
+
         cache = MemoryCache()
-    
+
     # Create the activity store with configured backend and cache
     activity_components.store = ActivityStore(backend=backend, cache=cache)
-    
+
     # Create the activity bus using the activity store
     activity_components.bus = ActivityBus(store=activity_components.store)
 

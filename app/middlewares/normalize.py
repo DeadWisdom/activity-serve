@@ -1,5 +1,5 @@
 import json
-from typing import Callable, Dict, Any
+from typing import Any
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 import structlog
