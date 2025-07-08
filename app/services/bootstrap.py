@@ -1,10 +1,12 @@
 from datetime import datetime, UTC
-from app.services.activity import get_activity_store
+from activity_bus import ActivityBus
 
 
 async def bootstrap_system() -> None:
+    return
+
     """Bootstrap system collections and namespace objects."""
-    store = get_activity_store()
+    store = ActivityBus()
 
     # Create system namespace collection
     ns_collection = {

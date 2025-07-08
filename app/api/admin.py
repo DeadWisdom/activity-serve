@@ -1,11 +1,12 @@
 from fastapi import APIRouter
 from fastapi.responses import HTMLResponse
+from .auth import User
 
 router = APIRouter(tags=["admin"])
 
 
 @router.get("/admin", response_class=HTMLResponse)
-async def admin_ui():
+async def admin_ui(user: User):
     """Return a simple HTML admin UI shell."""
     html_content = """
     <!DOCTYPE html>

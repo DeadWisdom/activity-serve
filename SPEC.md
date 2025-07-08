@@ -102,7 +102,6 @@ Via Pydantic `BaseSettings`, with `.env` support:
 - `ACTIVITY_SERVE_BASE_URL` (optional)
 - `ACTIVITY_STORE_BACKEND` (default: memory)
 - `ACTIVITY_STORE_CACHE` (default: memory)
-- `ELASTICSEARCH_URL`, `REDIS_URL` if backends used
 
 ---
 

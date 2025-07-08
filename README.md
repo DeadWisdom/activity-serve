@@ -27,12 +27,8 @@ uv pip install -e .
 Create a `.env` file in the root directory with the following variables:
 
 ```
-ACTIVITY_SERVE_BASE_URL=http://localhost:8000
 ACTIVITY_STORE_BACKEND=memory  # or elasticsearch
 ACTIVITY_STORE_CACHE=memory  # or redis
-ELASTICSEARCH_URL=http://localhost:9200  # if using elasticsearch backend
-REDIS_URL=redis://localhost:6379  # if using redis cache
-JWT_SECRET_KEY=your-secret-key
 GOOGLE_CLIENT_ID=your-google-client-id
 ```
 

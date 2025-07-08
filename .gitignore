@@ -17,3 +17,6 @@ wheels/
 # Project files
 /notes/
 /scrap/
+
+
+node_modules/

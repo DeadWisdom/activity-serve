@@ -1,76 +1,69 @@
 import pytest
+import os
+from httpx import URL
 from fastapi.testclient import TestClient
-from unittest.mock import AsyncMock
+from pathlib import PurePosixPath
+
+# Set test environment variables before any app imports
+os.environ["SESSION_COOKIE_SECURE"] = "false"
 
 from app.main import create_app
-from app.services.activity import activity_components
 from app.core.settings import Settings
+from app.api.auth import add_stock_token
+
+
+# Test Users
+test_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+test_token_dict = {
+    "sub": "123456789",
+    "iss": "https://example.com/",
+    "email": "test@example.com",
+    "name": "Test User",
+    "picture": "https://example.com/picture.jpg",
+}
+add_stock_token(test_token, test_token_dict)
+
+
+@pytest.fixture
+def test_auth():
+    yield {"Authorization": f"Bearer {test_token}"}
+
+
+@pytest.fixture
+def test_auth_info():
+    return test_token_dict
+
+
+@pytest.fixture
+def test_auth_id():
+    return PurePosixPath("u", test_token_dict["sub"])
 
 
 @pytest.fixture
 def settings():
     """Fixture for test settings."""
     return Settings(
-        activity_serve_base_url="http://localhost:8000",
-        activity_store_backend="memory",
-        activity_store_cache="memory",
-        jwt_secret_key="test-secret-key",
-        jwt_algorithm="HS256",
-        cookie_name="activity_serve_auth",
-        cookie_max_age=86400,
+        session_max_age=86400,
+        session_cookie_secure=False,  # Disable secure for testing
     )
 
 
 @pytest.fixture
-def mock_activity_store():
-    """Fixture for mocked ActivityStore."""
-    mock_store = AsyncMock()
-    
-    # Define common mock methods
-    mock_store.get = AsyncMock(return_value=None)
-    mock_store.set = AsyncMock(return_value=None)
-    mock_store.query = AsyncMock(return_value=[])
-    mock_store.delete = AsyncMock(return_value=None)
-    
-    return mock_store
+def app(settings):
+    return create_app()
 
 
 @pytest.fixture
-def mock_activity_bus():
-    """Fixture for mocked ActivityBus."""
-    mock_bus = AsyncMock()
-    
-    # Define common mock methods
-    mock_bus.submit = AsyncMock(return_value=None)
-    mock_bus.process_next = AsyncMock(return_value=None)
-    
-    return mock_bus
-
-
-@pytest.fixture
-def patched_activity_components(mock_activity_store, mock_activity_bus):
-    """Fixture to patch the global activity components."""
-    # Save the original components
-    original_store = activity_components.store
-    original_bus = activity_components.bus
-    
-    # Replace with mocks
-    activity_components.store = mock_activity_store
-    activity_components.bus = mock_activity_bus
-    
-    yield activity_components
-    
-    # Restore original components
-    activity_components.store = original_store
-    activity_components.bus = original_bus
-
-
-@pytest.fixture
-def client(patched_activity_components, settings):
+def client(app):
     """Fixture for FastAPI test client."""
-    app = create_app()
-    
-    with TestClient(app) as test_client:
+
+    class EZTestClient(TestClient):
+        def _merge_url(self, url: URL | str | PurePosixPath) -> URL:
+            if isinstance(url, PurePosixPath):
+                url = str(url)
+            return super()._merge_url(url)
+
+    with EZTestClient(app) as test_client:
         yield test_client
 
 
@@ -78,34 +71,3 @@ def client(patched_activity_components, settings):
 def auth_headers():
     """Fixture for authentication headers."""
     return {"Authorization": "Bearer test-token"}
-
-
-@pytest.fixture
-def mock_user():
-    """Fixture for a mock user."""
-    return {
-        "@context": "https://www.w3.org/ns/activitystreams",
-        "id": "/u/testuser",
-        "type": "Person",
-        "name": "Test User",
-        "preferredUsername": "testuser",
-        "inbox": "/u/testuser/inbox",
-        "outbox": "/u/testuser/outbox",
-        "published": "2023-01-01T00:00:00Z"
-    }
-
-
-@pytest.fixture
-def mock_identity():
-    """Fixture for a mock identity."""
-    return {
-        "@context": ["https://www.w3.org/ns/activitystreams", {"activity-serve": "https://example.org/ns/"}],
-        "id": "/u/testuser/idents/google",
-        "type": "Identity",
-        "provider": "google",
-        "sub": "123456789",
-        "email": "test@example.com",
-        "name": "Test User",
-        "user": "/u/testuser",
-        "published": "2023-01-01T00:00:00Z"
-    }
