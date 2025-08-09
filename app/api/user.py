@@ -75,5 +75,8 @@ async def post_to_outbox(
         if "id" not in activity:
             activity["id"] = f"{user['id']}/activities/{generate()}"
 
+        print("Submitting activity:", activity)
+
         # Submit the activity to the bus
         return await ActivityBus(store=store).submit(activity)
+        

@@ -1,15 +1,16 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
-from app.core.settings import Settings
+from app.settings import Settings
 from app.api import router as api_router
 from app.middleware.logging import LoggingMiddleware
 from app.middleware.normalize import NormalizeMiddleware
 
-settings = Settings()
-
 
 def create_app() -> FastAPI:
+    settings = Settings()
+
     """Create and configure the FastAPI application."""
     app = FastAPI(
         title="Activity Serve",
@@ -26,12 +27,11 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Add custom middleware
-    # app.add_middleware(LoggingMiddleware)
-    # app.add_middleware(NormalizeMiddleware)
-
     # Include API routers
     app.include_router(api_router)
+
+    # Mount static files
+    app.mount("/ui", StaticFiles(directory=settings.static_directory), name="ui")
 
     return app
 

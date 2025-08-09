@@ -1,1 +1,3 @@
-console.log("Hello via Bun!");
+import './services/auth';
+import './components/auth-avatar';
+import './components/collection-feed';

@@ -7,5 +7,13 @@
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
+  },
+  "scripts": {
+    "build": "bun build ui/index.ts --outdir ui --target browser",
+    "dev": "bun build ui/index.ts --outdir ui --target browser --watch"
+  },
+  "dependencies": {
+    "firebase": "^12.0.0",
+    "lit": "^3.3.1"
   }
 }

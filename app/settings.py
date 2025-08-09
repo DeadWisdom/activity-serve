@@ -1,6 +1,9 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings
 from pydantic import ConfigDict
 
+base_dir = Path(__file__).resolve().parent
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables with .env support."""
@@ -23,3 +26,6 @@ class Settings(BaseSettings):
     allow_origins: list[str] = ["*"]
 
     model_config = ConfigDict(env_file=".env", case_sensitive=False)
+
+    static_directory: str = str(base_dir.parent / "ui")
+    templates_directory: str = str(base_dir / "templates")
