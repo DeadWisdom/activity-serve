@@ -1,4 +1,5 @@
 import pytest
+import pytest_asyncio
 import os
 from httpx import URL
 from fastapi.testclient import TestClient
@@ -10,6 +11,8 @@ os.environ["SESSION_COOKIE_SECURE"] = "false"
 from app.main import create_app
 from app.core.settings import Settings
 from app.api.auth import add_stock_token
+
+from activity_store.backends.memory import InMemoryStorageBackend
 
 
 # Test Users
@@ -48,8 +51,15 @@ def settings():
     )
 
 
+@pytest_asyncio.fixture
+async def storage():
+    store = InMemoryStorageBackend()
+    await store.teardown()
+    yield store
+
+
 @pytest.fixture
-def app(settings):
+def app(settings, storage):
     return create_app()
 
 

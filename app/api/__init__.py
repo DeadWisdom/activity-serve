@@ -3,8 +3,8 @@ from fastapi.responses import ORJSONResponse
 
 from app.api.health import router as health_router
 from app.api.admin import router as admin_router
-
 from app.api.user import router as user_router
+from app.api.query import router as query_router
 
 
 class ActivityStreamResponse(ORJSONResponse):
@@ -18,3 +18,4 @@ router = APIRouter(default_response_class=ActivityStreamResponse)
 router.include_router(health_router)
 router.include_router(admin_router)
 router.include_router(user_router)
+router.include_router(query_router)

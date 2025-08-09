@@ -33,22 +33,29 @@ async def get_inbox(user_key: str, user: UserMaybe):
 
 
 @router.get("/u/{user_key}/outbox")
-async def get_outbox(user_key: str, request: Request):
+async def get_outbox(user_key: str, sort: str="published:desc", after: Any=None):
     """Get a user's outbox."""
     async with ActivityStore() as store:
-        # Get the outbox collection
-        outbox = await store.dereference(f"/u/{user_key}/outbox")
-        if not outbox:
-            raise HTTPException(status_code=404)
+        user = await store.dereference(f"/u/{user_key}")
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
 
-        # Return the outbox collection
+        outbox = await store.query(
+            collection=f"/u/{user_key}/outbox",
+            sort=sort,
+            after=after,
+        )
+
+        outbox['type'] = 'OrderedCollection'
+        outbox["attributedTo"] = user
+        outbox["audience"] = "Public"
+        outbox["id"] = f"/u/{user_key}/outbox"
         return outbox
 
 
 @router.post("/u/{user_key}/outbox")
 async def post_to_outbox(
     user_key: str,
-    request: Request,
     user: User,
     activity: Dict[str, Any] = Body(...),
 ):

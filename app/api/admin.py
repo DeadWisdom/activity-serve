@@ -6,7 +6,7 @@ router = APIRouter(tags=["admin"])
 
 
 @router.get("/admin", response_class=HTMLResponse)
-async def admin_ui(user: User):
+async def admin_ui():
     """Return a simple HTML admin UI shell."""
     html_content = """
     <!DOCTYPE html>
