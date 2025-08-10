@@ -17,6 +17,6 @@ wheels/
 # Project files
 /notes/
 /scrap/
-
+/ui/index.js
 
 node_modules/
