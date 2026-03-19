@@ -46,8 +46,10 @@ async def query(user_key: str, path: str, user: UserMaybe, sort: str="published:
 def is_subpath(uri: str, base: str) -> bool:
     if not uri or not base:
         return False
-    if not 
-    
+    if not base.endswith('/'):
+        base += '/'
+    return uri.startswith(base)
+
 
 
 async def has_read_access(store: ActivityStore, item: Any, user: UserMaybe) -> bool:
