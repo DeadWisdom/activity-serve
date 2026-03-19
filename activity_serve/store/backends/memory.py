@@ -53,10 +53,11 @@ class InMemoryStorageBackend(StorageBackend):
             else:
                 items = [o for o in items if o.get("type") == query.type]
 
+        total = len(items)
         items = items[:query.size]
 
         return {
-            "totalItems": len(items),
+            "totalItems": total,
             "items": [copy.deepcopy(o) for o in items],
         }
 

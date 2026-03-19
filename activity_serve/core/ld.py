@@ -200,8 +200,8 @@ def frame(
     options=None,
     extra_options=None,
     prefixes: OptionalPrefixDict = None,
-    compact=False,
-    normalize=False,
+    do_compact=False,
+    do_normalize=False,
     require_match=False,
 ) -> dict | None:
     context = context or doc.get("@context", ["https://www.w3.org/ns/activitystreams"])
@@ -218,9 +218,9 @@ def frame(
         options.update(extra_options)
 
     result = jsonld.frame(doc, input, options)  # type: ignore
-    if normalize:
+    if do_normalize:
         result = normalize(result, context, options, extra_options, prefixes)
-    if compact:
+    if do_compact:
         result = compact(result, context, options, extra_options, prefixes)
     if require_match and any_none(result):
         return None
