@@ -231,5 +231,9 @@ After consolidation, `pyproject.toml` dependencies change:
 - [x] Iteration 3: Bus sub-package (TDD — 21 tests)
 - [x] Iteration 4: Update API layer
 - [x] Iteration 5: Clean up
+- [x] Post-consolidation: Dead code cleanup, ld.py test coverage
+- [x] Post-consolidation: Query endpoint completed (TDD — 5 tests)
+- [x] Post-consolidation: Elasticsearch backend (TDD — 10 integration tests)
+- [x] Post-consolidation: Redis cache backend (TDD — 6 integration tests)
 
-Total: 94 tests passing
+Total: 108 tests passing, 16 skipped (integration tests needing ES/Redis)
