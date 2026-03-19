@@ -225,9 +225,11 @@ After consolidation, `pyproject.toml` dependencies change:
 
 ## Current State
 
-- [ ] Iteration 0: Fix current tests
-- [ ] Iteration 1: Rename + establish core
-- [ ] Iteration 2: Store sub-package
-- [ ] Iteration 3: Bus sub-package
-- [ ] Iteration 4: Update API layer
-- [ ] Iteration 5: Clean up
+- [x] Iteration 0: Fix current tests
+- [x] Iteration 1: Rename + establish core
+- [x] Iteration 2: Store sub-package (TDD — 40 tests)
+- [x] Iteration 3: Bus sub-package (TDD — 21 tests)
+- [x] Iteration 4: Update API layer
+- [x] Iteration 5: Clean up
+
+Total: 94 tests passing

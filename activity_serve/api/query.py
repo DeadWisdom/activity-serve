@@ -13,9 +13,6 @@ router = APIRouter(tags=["query"])
 async def query(user_key: str, path: str, user: UserMaybe, sort: str="published:desc", after: Any=None):
     """Query a user path item."""
 
-    if user and user['id'] != f"/u/{user_key}":
-        item = await store.dereference(f"/u/{user_key}/{path}")
-
     async with ActivityStore() as store:
         target_user = await store.dereference(f"/u/{user_key}")
         if not target_user:

@@ -13,18 +13,18 @@ dependencies = [
     "nanoid>=2.0.0",
     "python-jose>=3.3.0",
     "python-multipart>=0.0.6",
-    "ruff>=0.4.0",
     "firebase-admin>=6.9.0",
     "pyld>=2.0.4",
     "hishel>=0.0.31",
     "orjson>=3.9.0",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
-    "pytest>=7.4.3",
-    "pytest-asyncio>=0.21.1",
-    "httpx>=0.25.0",
+    "httpx>=0.28.1",
+    "pytest>=8.4.1",
+    "pytest-asyncio>=1.1.0",
+    "ruff>=0.4.0",
 ]
 
 [tool.pytest]
@@ -38,11 +38,3 @@ asyncio_default_fixture_loop_scope = "function"
 [tool.ruff]
 line-length = 120
 target-version = "py310"
-
-[dependency-groups]
-dev = [
-    "httpx>=0.28.1",
-    "pytest>=8.4.1",
-    "pytest-asyncio>=1.1.0",
-]
-
