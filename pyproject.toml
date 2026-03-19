@@ -10,13 +10,14 @@ dependencies = [
     "pydantic>=2.4.2",
     "pydantic-settings>=2.0.3",
     "structlog>=23.2.0",
-    "activity-store[es,redis]",
-    "activity-bus",
     "nanoid>=2.0.0",
     "python-jose>=3.3.0",
     "python-multipart>=0.0.6",
     "ruff>=0.4.0",
     "firebase-admin>=6.9.0",
+    "pyld>=2.0.4",
+    "hishel>=0.0.31",
+    "orjson>=3.9.0",
 ]
 
 [project.optional-dependencies]
@@ -38,6 +39,10 @@ asyncio_default_fixture_loop_scope = "function"
 line-length = 120
 target-version = "py310"
 
-[tool.uv.sources]
-activity-store = { path = "../activity-store", editable = true }
-activity-bus = { path = "../activity-bus", editable = true }
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=8.4.1",
+    "pytest-asyncio>=1.1.0",
+]
+

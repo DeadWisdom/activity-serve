@@ -4,7 +4,7 @@ import struct
 from datetime import datetime, UTC
 from typing import Any
 
-from activity_store import ActivityStore
+from activity_serve.store import ActivityStore
 
 
 async def get_identity_by_provider(store: ActivityStore, provider: str, sub: str) -> dict[str, Any] | None:

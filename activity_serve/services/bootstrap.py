@@ -1,5 +1,5 @@
 from datetime import datetime, UTC
-from activity_bus import ActivityBus
+from activity_serve.bus import ActivityBus
 
 
 async def bootstrap_system() -> None:

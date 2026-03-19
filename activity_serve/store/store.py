@@ -9,16 +9,31 @@ from activity_serve.store.query import Query
 
 ACTIVITYSTREAMS_CONTEXT = "https://www.w3.org/ns/activitystreams"
 
-# Fields preserved when storing a partial representation in a collection
-COLLECTION_FIELDS = {"id", "type", "name", "summary", "url", "published", "updated", "@context"}
 
 
 class ActivityStore:
     """Coordinates storage and caching of ActivityStreams objects."""
 
-    def __init__(self, backend: StorageBackend, cache: CacheBackend):
-        self.backend = backend
-        self.cache = cache
+    _default_backend: StorageBackend | None = None
+    _default_cache: CacheBackend | None = None
+
+    @classmethod
+    def _get_default_backend(cls) -> StorageBackend:
+        if cls._default_backend is None:
+            from activity_serve.store.backends.memory import InMemoryStorageBackend
+            cls._default_backend = InMemoryStorageBackend()
+        return cls._default_backend
+
+    @classmethod
+    def _get_default_cache(cls) -> CacheBackend:
+        if cls._default_cache is None:
+            from activity_serve.store.backends.memory import InMemoryCacheBackend
+            cls._default_cache = InMemoryCacheBackend()
+        return cls._default_cache
+
+    def __init__(self, backend: StorageBackend | None = None, cache: CacheBackend | None = None):
+        self.backend = backend or self._get_default_backend()
+        self.cache = cache or self._get_default_cache()
 
     async def __aenter__(self):
         return self
@@ -62,21 +77,36 @@ class ActivityStore:
             await self.cache.add(object_id, obj)
         return obj
 
-    async def query(self, query: Query) -> dict:
-        """Query the backend for objects matching the given criteria."""
-        return await self.backend.query(query)
+    async def query(self, query: Query | dict | None = None, **kwargs) -> dict:
+        """Query the backend for objects matching the given criteria.
+
+        Accepts a Query object, a dict of parameters, keyword arguments, or a combination.
+        Keyword arguments override dict/Query parameters.
+        """
+        if query is None and not kwargs:
+            final_query = Query()
+        elif isinstance(query, Query) and not kwargs:
+            final_query = query
+        else:
+            params = {}
+            if isinstance(query, dict):
+                params.update(query)
+            elif isinstance(query, Query):
+                params.update(query.model_dump(exclude_none=True))
+            params.update(kwargs)
+            final_query = Query(**params)
+        return await self.backend.query(final_query)
 
     async def add_to_collection(self, obj, collection: str) -> None:
-        """Add an object to a named collection, storing a partial representation."""
+        """Add an object to a named collection."""
         self._validate(obj)
         self._ensure_context(obj)
 
         # Store the full object in the main store
         await self.backend.add(obj)
 
-        # Build a partial representation for the collection
-        partial = {k: v for k, v in obj.items() if k in COLLECTION_FIELDS}
-        await self.backend.add(partial, collection=collection)
+        # Add to the collection
+        await self.backend.add(obj, collection=collection)
 
     async def remove_from_collection(self, object_id: str, collection: str) -> None:
         """Remove an object from a named collection."""

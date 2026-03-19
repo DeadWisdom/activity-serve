@@ -2,9 +2,9 @@ from nanoid import generate
 from typing import Dict, Any
 from fastapi import APIRouter, HTTPException, Request, Body
 
-from activity_store import ActivityStore
-from activity_store.utils import first_id
-from activity_bus import ActivityBus
+from activity_serve.store import ActivityStore
+from activity_serve.core.utils import first_id
+from activity_serve.bus import ActivityBus
 from .auth import User, UserMaybe
 
 
@@ -83,4 +83,9 @@ async def post_to_outbox(
             activity["id"] = f"{user['id']}/activities/{generate()}"
 
         # Submit the activity to the bus
-        return await ActivityBus(store=store).submit(activity)
+        result = await ActivityBus(store=store).submit(activity)
+
+        # Add to the outbox collection
+        await store.add_to_collection(result, f"/u/{user_key}/outbox")
+
+        return result

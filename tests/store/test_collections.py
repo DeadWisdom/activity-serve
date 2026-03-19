@@ -65,8 +65,8 @@ async def test_query_with_collection_filter(store):
 
 
 @pytest.mark.asyncio(loop_scope="function")
-async def test_add_to_collection_stores_partial_representation(store):
-    """Adding to a collection stores a partial with id and type."""
+async def test_add_to_collection_stores_full_object(store):
+    """Adding to a collection stores the full object."""
     note = _make_note()
     note["name"] = "Test Note"
     await store.add_to_collection(note, "inbox")
@@ -76,5 +76,4 @@ async def test_add_to_collection_stores_partial_representation(store):
     assert item["id"] == "https://example.com/note/1"
     assert item["type"] == "Note"
     assert item.get("name") == "Test Note"
-    # content is not in the preserved fields list, so it should not be present
-    assert "content" not in item
+    assert item.get("content") == "Hello"

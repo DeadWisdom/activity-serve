@@ -1,4 +1,4 @@
-from activity_store.ld import frame
+from activity_serve.core.ld import frame
 
 
 def assert_response(

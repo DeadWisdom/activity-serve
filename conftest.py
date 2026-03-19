@@ -12,7 +12,8 @@ from activity_serve.main import create_app
 from activity_serve.core.settings import Settings
 from activity_serve.api.auth import add_stock_token
 
-from activity_store.backends.memory import InMemoryStorageBackend
+from activity_serve.store import ActivityStore
+from activity_serve.store.backends.memory import InMemoryStorageBackend, InMemoryCacheBackend
 
 
 # Test Users
@@ -51,15 +52,20 @@ def settings():
     )
 
 
-@pytest_asyncio.fixture
-async def storage():
-    store = InMemoryStorageBackend()
-    await store.teardown()
-    yield store
+@pytest.fixture(autouse=True)
+def reset_store_defaults():
+    """Reset shared ActivityStore defaults between tests."""
+    backend = InMemoryStorageBackend()
+    cache = InMemoryCacheBackend()
+    ActivityStore._default_backend = backend
+    ActivityStore._default_cache = cache
+    yield
+    ActivityStore._default_backend = None
+    ActivityStore._default_cache = None
 
 
 @pytest.fixture
-def app(settings, storage):
+def app(settings):
     return create_app()
 
 

@@ -2,9 +2,9 @@ from nanoid import generate
 from typing import Dict, Any
 from fastapi import APIRouter, HTTPException, Request, Body
 
-from activity_store import ActivityStore
-from activity_store.utils import first_id, chain_ids, gather
-from activity_bus import ActivityBus
+from activity_serve.store import ActivityStore
+from activity_serve.core.utils import first_id, chain_ids, gather
+from activity_serve.bus import ActivityBus
 from .auth import User, UserMaybe
 
 router = APIRouter(tags=["query"])
