@@ -13,6 +13,9 @@ router = APIRouter(tags=["query"])
 async def query(user_key: str, path: str, user: UserMaybe, sort: str="published:desc", after: Any=None):
     """Query a user path item."""
 
+    if user and user['id'] != f"/u/{user_key}":
+        item = await store.dereference(f"/u/{user_key}/{path}")
+
     async with ActivityStore() as store:
         target_user = await store.dereference(f"/u/{user_key}")
         if not target_user:
@@ -24,9 +27,6 @@ async def query(user_key: str, path: str, user: UserMaybe, sort: str="published:
             if target_user["id"] != user["id"]:
                 if not await has_audience(store, item.get("audience"), user):
                     raise HTTPException(status_code=403, detail="Forbidden: Item not in audience")
-
-            if not await has_audience(store, item.get("audience", []), item["id"]):
-                raise HTTPException(status_code=403, detail="Forbidden: Item not in audience")
 
         if item:
             await populate_collection(item, user, sort, after)
@@ -41,6 +41,29 @@ async def query(user_key: str, path: str, user: UserMaybe, sort: str="published:
             item["audience"] = "Public"
 
         return item
+
+
+def is_subpath(uri: str, base: str) -> bool:
+    if not uri or not base:
+        return False
+    if not 
+    
+
+
+async def has_read_access(store: ActivityStore, item: Any, user: UserMaybe) -> bool:
+    """
+    """
+    # First check user is the owner of the collection tree
+    if user:
+        user_id = user['id']
+        item_id = first_id(item)
+        if item_id:
+            if not item_id.endswith('/'):
+                item_id += '/'
+            if item_id.startswith(user_id):
+                return True
+        
+    
 
 
 async def populate_collection(col: dict, user: UserMaybe, sort: str="published:desc", after: Any=None):

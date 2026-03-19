@@ -15,7 +15,7 @@ dependencies = [
     "nanoid>=2.0.0",
     "python-jose>=3.3.0",
     "python-multipart>=0.0.6",
-    "ruff",
+    "ruff>=0.4.0",
     "firebase-admin>=6.9.0",
 ]
 
@@ -39,5 +39,5 @@ line-length = 120
 target-version = "py310"
 
 [tool.uv.sources]
-activity-store = { git = "https://github.com/DeadWisdom/activity-store.git" }
-activity-bus = { git = "https://github.com/DeadWisdom/activity-bus.git" }
+activity-store = { path = "../activity-store", editable = true }
+activity-bus = { path = "../activity-bus", editable = true }
