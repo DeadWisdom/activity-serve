@@ -5,8 +5,6 @@ import os
 
 import pytest
 
-from activity_serve.store.backends.redis import RedisCacheBackend
-
 pytestmark = pytest.mark.skipif(
     not os.environ.get("REDIS_URL"),
     reason="REDIS_URL not set",
@@ -16,6 +14,7 @@ pytestmark = pytest.mark.skipif(
 @pytest.fixture
 async def cache():
     """Create a RedisCacheBackend with a test namespace, clean up after use."""
+    from activity_serve.store.backends.redis import RedisCacheBackend
     backend = RedisCacheBackend(namespace="test_activity_store")
     yield backend
     # Clean up all keys under the test namespace

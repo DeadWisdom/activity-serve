@@ -17,17 +17,11 @@ dependencies = [
     "pyld>=2.0.4",
     "hishel>=0.0.31",
     "orjson>=3.9.0",
-    "redis>=7.3.0",
-    "elasticsearch>=9.3.0",
 ]
 
 [project.optional-dependencies]
-redis = [
-    "redis[hiredis]>=5.0.0",
-]
-es = [
-    "elasticsearch[async]>=8.0.0",
-]
+redis = ["redis[hiredis]>=5.0.0"]
+es = ["elasticsearch[async]>=8.0.0"]
 
 [dependency-groups]
 dev = [

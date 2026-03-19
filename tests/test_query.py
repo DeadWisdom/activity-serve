@@ -51,7 +51,7 @@ def test_query_collection(test_auth, client: TestClient):
     user_key = user["id"].split("/u/")[1]
 
     notes = [
-        {"id": f"/u/{user_key}/notes/{i}", "type": "Note", "content": f"Note {i}", "audience": "Public"}
+        {"id": f"/u/{user_key}/notes/{i}", "type": "Note", "content": f"Note {i}"}
         for i in range(1, 4)
     ]
 
@@ -117,3 +117,36 @@ def test_query_public_audience(test_auth, client: TestClient):
     assert response.status_code == 200
     data = response.json()
     assert "Public note" in str(data.get("content", ""))
+
+
+def test_query_private_item_denied_for_non_owner(test_auth, client: TestClient):
+    """A non-public item returns 403 for unauthenticated users."""
+    user = client.get("/me", headers=test_auth).json()
+    user_key = user["id"].split("/u/")[1]
+
+    private_note = {
+        "id": f"/u/{user_key}/notes/secret",
+        "type": "Note",
+        "content": "Top secret",
+        "audience": f"/u/{user_key}/followers",
+    }
+
+    async def setup():
+        async with ActivityStore() as store:
+            await store.store(private_note)
+
+    _run(setup())
+
+    # Unauthenticated user gets 403
+    response = client.get(f"/u/{user_key}/notes/secret")
+    assert response.status_code == 403
+
+
+def test_query_nonexistent_path_returns_404_for_non_owner(test_auth, client: TestClient):
+    """Non-owners cannot discover implicit collections — they get 404."""
+    user = client.get("/me", headers=test_auth).json()
+    user_key = user["id"].split("/u/")[1]
+
+    # Unauthenticated user trying to discover a collection path
+    response = client.get(f"/u/{user_key}/some-collection")
+    assert response.status_code == 404

@@ -5,7 +5,6 @@ import os
 from typing import Optional
 
 from elasticsearch import AsyncElasticsearch, NotFoundError
-from elasticsearch.helpers import async_scan
 
 from activity_serve.store.interfaces import StorageBackend
 from activity_serve.store.query import Query
@@ -41,6 +40,10 @@ class ElasticsearchBackend(StorageBackend):
         for index in (self.objects_index, self.collections_index):
             if not await self.client.indices.exists(index=index):
                 await self.client.indices.create(index=index)
+
+    async def close(self) -> None:
+        """Close the Elasticsearch client connection."""
+        await self.client.close()
 
     async def teardown(self) -> None:
         """Delete both indices, removing all data."""

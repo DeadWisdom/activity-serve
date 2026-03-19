@@ -17,17 +17,22 @@ async def query(user_key: str, path: str, user: UserMaybe, sort: str = "publishe
         if not target_user:
             raise HTTPException(status_code=404, detail="User not found")
 
+        is_owner = user is not None and target_user["id"] == user["id"]
+
         item = await store.dereference(f"/u/{user_key}/{path}")
         if item:
             # Check access: owners can always read their own items
-            is_owner = user and target_user["id"] == user["id"]
             if not is_owner:
                 if not await has_audience(store, item.get("audience"), user):
                     raise HTTPException(status_code=403, detail="Forbidden: Item not in audience")
 
-        if item:
             await populate_collection(store, item, sort, after)
         else:
+            # No stored object at this path — check if there's a collection
+            # Only the owner can discover implicit collections
+            if not is_owner:
+                raise HTTPException(status_code=404, detail="Item not found")
+
             item = {
                 "id": f"/u/{user_key}/{path}",
                 "type": "OrderedCollection",
@@ -35,32 +40,8 @@ async def query(user_key: str, path: str, user: UserMaybe, sort: str = "publishe
             if not await populate_collection(store, item, sort, after):
                 raise HTTPException(status_code=404, detail="Item not found")
             item["attributedTo"] = target_user
-            item["audience"] = "Public"
 
         return item
-
-
-def is_subpath(uri: str, base: str) -> bool:
-    if not uri or not base:
-        return False
-    if not base.endswith('/'):
-        base += '/'
-    return uri.startswith(base)
-
-
-async def has_read_access(store: ActivityStore, item: Any, user: UserMaybe) -> bool:
-    """Check if user has read access to an item."""
-    # First check user is the owner of the collection tree
-    if user:
-        user_id = user['id']
-        item_id = first_id(item)
-        if item_id:
-            if not item_id.endswith('/'):
-                item_id += '/'
-            if item_id.startswith(user_id):
-                return True
-
-    return False
 
 
 async def populate_collection(store: ActivityStore, col: dict, sort: str = "published:desc", after: Any = None):
@@ -101,12 +82,14 @@ async def has_audience(store: ActivityStore, audience: Any, user: Any) -> bool:
     Returns:
         True if the user is in the audience, False otherwise.
     """
+    if audience is None:
+        return False
+
     for collection_id in chain_ids(audience):
         if collection_id in ["Public", "as:Public", "https://www.w3.org/ns/activitystreams#Public"]:
             return True
         user_id = first_id(user)
-        if user_id:
-            col = await store.query(collection=collection_id, keywords={"id": first_id(user_id)})
-            if col.get('items'):
-                return True
+        if user_id and user_id == collection_id:
+            return True
+
     return False
