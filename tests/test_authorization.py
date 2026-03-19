@@ -19,7 +19,6 @@ def mock_routes(app):
         return None
 
 
-@pytest.mark.asyncio
 async def test_authorization(mock_routes, test_auth, test_auth_info, client: TestClient):
     """Test successful usage of auth token."""
 

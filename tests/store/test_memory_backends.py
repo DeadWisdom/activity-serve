@@ -19,7 +19,6 @@ async def storage_backend():
     await backend.teardown()
 
 
-@pytest.mark.asyncio(loop_scope="function")
 async def test_storage_add_and_get(storage_backend):
     """Adding an object allows it to be retrieved by id."""
     obj = {"id": "https://example.com/1", "type": "Note", "content": "hello"}
@@ -31,14 +30,12 @@ async def test_storage_add_and_get(storage_backend):
     assert result["content"] == "hello"
 
 
-@pytest.mark.asyncio(loop_scope="function")
 async def test_storage_get_missing_returns_none(storage_backend):
     """Getting a non-existent object returns None."""
     result = await storage_backend.get("https://example.com/missing")
     assert result is None
 
 
-@pytest.mark.asyncio(loop_scope="function")
 async def test_storage_remove(storage_backend):
     """Removing an object makes it no longer retrievable."""
     obj = {"id": "https://example.com/1", "type": "Note"}
@@ -49,7 +46,6 @@ async def test_storage_remove(storage_backend):
     assert result is None
 
 
-@pytest.mark.asyncio(loop_scope="function")
 async def test_storage_query_by_collection(storage_backend):
     """Querying by collection returns only objects in that collection."""
     obj1 = {"id": "https://example.com/1", "type": "Note"}
@@ -64,7 +60,6 @@ async def test_storage_query_by_collection(storage_backend):
     assert results["items"][0]["id"] == "https://example.com/1"
 
 
-@pytest.mark.asyncio(loop_scope="function")
 async def test_storage_query_by_type(storage_backend):
     """Querying by type returns only objects of that type."""
     note = {"id": "https://example.com/1", "type": "Note"}
@@ -79,7 +74,6 @@ async def test_storage_query_by_type(storage_backend):
     assert results["items"][0]["type"] == "Note"
 
 
-@pytest.mark.asyncio(loop_scope="function")
 async def test_storage_teardown_clears_data(storage_backend):
     """Teardown removes all stored objects and collections."""
     obj = {"id": "https://example.com/1", "type": "Note"}
@@ -94,7 +88,6 @@ async def test_storage_teardown_clears_data(storage_backend):
     assert results["totalItems"] == 0
 
 
-@pytest.mark.asyncio(loop_scope="function")
 async def test_storage_remove_from_collection(storage_backend):
     """Removing from a specific collection leaves the object in storage."""
     obj = {"id": "https://example.com/1", "type": "Note"}
@@ -122,7 +115,6 @@ async def cache_backend():
     yield backend
 
 
-@pytest.mark.asyncio(loop_scope="function")
 async def test_cache_add_and_get(cache_backend):
     """Adding a value to cache allows it to be retrieved."""
     value = {"id": "https://example.com/1", "type": "Note"}
@@ -133,14 +125,12 @@ async def test_cache_add_and_get(cache_backend):
     assert result["id"] == "https://example.com/1"
 
 
-@pytest.mark.asyncio(loop_scope="function")
 async def test_cache_get_missing_returns_none(cache_backend):
     """Getting a non-existent key returns None."""
     result = await cache_backend.get("missing_key")
     assert result is None
 
 
-@pytest.mark.asyncio(loop_scope="function")
 async def test_cache_remove(cache_backend):
     """Removing a key makes it no longer retrievable."""
     value = {"id": "https://example.com/1", "type": "Note"}
@@ -151,7 +141,6 @@ async def test_cache_remove(cache_backend):
     assert result is None
 
 
-@pytest.mark.asyncio(loop_scope="function")
 async def test_cache_expired_entry_returns_none(cache_backend):
     """Expired cache entries return None on get."""
     value = {"id": "https://example.com/1", "type": "Note"}
@@ -163,7 +152,6 @@ async def test_cache_expired_entry_returns_none(cache_backend):
     assert result is None
 
 
-@pytest.mark.asyncio(loop_scope="function")
 async def test_cache_unexpired_entry_returns_value(cache_backend):
     """Cache entries within TTL are returned."""
     value = {"id": "https://example.com/1", "type": "Note"}
@@ -174,7 +162,6 @@ async def test_cache_unexpired_entry_returns_value(cache_backend):
     assert result["id"] == "https://example.com/1"
 
 
-@pytest.mark.asyncio(loop_scope="function")
 async def test_cache_returns_deep_copy(cache_backend):
     """Cache returns deep copies so external mutations don't affect stored data."""
     value = {"id": "https://example.com/1", "type": "Note", "content": "original"}

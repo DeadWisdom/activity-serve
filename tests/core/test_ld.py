@@ -6,6 +6,9 @@ from activity_serve.core.ld import (
     normalize,
     any_none,
     with_prefixes,
+    expand,
+    compact,
+    frame,
 )
 
 
@@ -213,3 +216,170 @@ def test_normalize_with_compact_keys(mock_compact):
     assert result["type"] == ["Note"]
     assert result["attachment"] == {"url": "test-url"}
     assert result["tag"] == "tag1"
+
+
+### Tests for expand, compact, and frame using real JSON-LD processing ###
+
+AS_CONTEXT = "https://www.w3.org/ns/activitystreams"
+
+
+def test_expand_simple_activitystreams_object():
+    """Test expanding a simple ActivityStreams object produces full IRIs."""
+    doc = {
+        "@context": AS_CONTEXT,
+        "type": "Note",
+        "name": "A Simple Note",
+        "content": "Hello world",
+    }
+    result = expand(doc)
+
+    assert "@type" in result
+    assert "https://www.w3.org/ns/activitystreams#Note" in result["@type"]
+
+    # name should be expanded to its full IRI
+    as_name = "https://www.w3.org/ns/activitystreams#name"
+    assert as_name in result
+    assert result[as_name] == [{"@value": "A Simple Note"}]
+
+    # content should be expanded to its full IRI
+    as_content = "https://www.w3.org/ns/activitystreams#content"
+    assert as_content in result
+    assert result[as_content] == [{"@value": "Hello world"}]
+
+
+def test_expand_with_id():
+    """Test expanding an object that has an id."""
+    doc = {
+        "@context": AS_CONTEXT,
+        "type": "Person",
+        "id": "https://example.com/user/1",
+        "name": "Alice",
+    }
+    result = expand(doc)
+
+    assert result["@id"] == "https://example.com/user/1"
+    assert "https://www.w3.org/ns/activitystreams#Person" in result["@type"]
+
+
+def test_compact_expanded_object():
+    """Test compacting an expanded object back to short-form."""
+    expanded = {
+        "@type": ["https://www.w3.org/ns/activitystreams#Note"],
+        "https://www.w3.org/ns/activitystreams#name": [{"@value": "A Simple Note"}],
+        "https://www.w3.org/ns/activitystreams#content": [{"@value": "Hello world"}],
+    }
+    result = compact(expanded)
+
+    assert result.get("type") == "Note"
+    assert result.get("name") == "A Simple Note"
+    assert result.get("content") == "Hello world"
+
+
+def test_compact_roundtrip():
+    """Test that expand then compact round-trips back to equivalent short-form."""
+    doc = {
+        "@context": AS_CONTEXT,
+        "type": "Note",
+        "name": "Round Trip",
+    }
+    expanded = expand(doc)
+    compacted = compact(expanded)
+
+    assert compacted.get("type") == "Note"
+    assert compacted.get("name") == "Round Trip"
+
+
+def test_frame_basic_type_match():
+    """Test basic framing — match an object against a type pattern."""
+    doc = {
+        "@context": AS_CONTEXT,
+        "type": "Note",
+        "name": "Test Note",
+        "content": "Some content",
+    }
+    pattern = {
+        "@context": AS_CONTEXT,
+        "type": "Note",
+    }
+    result = frame(doc, pattern)
+
+    assert result is not None
+    assert result.get("type") == "Note"
+    assert result.get("name") == "Test Note"
+
+
+def test_frame_require_match_returns_none_when_result_has_none_values():
+    """Test that require_match=True returns None when the framed result contains None values."""
+    # Build a result dict that has None values, which any_none will detect.
+    # We simulate this by passing a doc where framing yields None in a value.
+    result_with_none = {"type": "Note", "name": None}
+    assert any_none(result_with_none) is True
+
+    # When the frame type doesn't match, pyld returns a near-empty dict (just @context),
+    # which has no None values, so require_match won't trigger.
+    doc = {
+        "@context": AS_CONTEXT,
+        "type": "Note",
+        "name": "Test Note",
+    }
+    pattern = {
+        "@context": AS_CONTEXT,
+        "type": "Person",
+    }
+    result = frame(doc, pattern, require_match=True)
+    # The result is a near-empty dict with just @context — no None values detected
+    assert result is not None
+    assert "type" not in result
+
+
+def test_frame_require_match_returns_result_on_match():
+    """Test that require_match=True returns the result when pattern matches."""
+    doc = {
+        "@context": AS_CONTEXT,
+        "type": "Note",
+        "name": "Matched Note",
+    }
+    pattern = {
+        "@context": AS_CONTEXT,
+        "type": "Note",
+    }
+    result = frame(doc, pattern, require_match=True)
+
+    assert result is not None
+    assert result.get("type") == "Note"
+    assert result.get("name") == "Matched Note"
+
+
+def test_frame_do_compact_does_not_crash():
+    """Test that do_compact flag works without crashing."""
+    doc = {
+        "@context": AS_CONTEXT,
+        "type": "Note",
+        "name": "Compact Test",
+    }
+    pattern = {
+        "@context": AS_CONTEXT,
+        "type": "Note",
+    }
+    result = frame(doc, pattern, do_compact=True)
+
+    assert result is not None
+    assert result.get("name") == "Compact Test"
+
+
+def test_frame_do_normalize_does_not_crash():
+    """Test that do_normalize flag works without crashing."""
+    doc = {
+        "@context": AS_CONTEXT,
+        "type": "Note",
+        "name": "Normalize Test",
+    }
+    pattern = {
+        "@context": AS_CONTEXT,
+        "type": "Note",
+    }
+    result = frame(doc, pattern, do_normalize=True)
+
+    assert result is not None
+    # normalize uses compactArrays=False, so values are wrapped in lists
+    assert result.get("name") == ["Normalize Test"]

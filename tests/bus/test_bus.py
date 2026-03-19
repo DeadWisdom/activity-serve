@@ -44,7 +44,6 @@ def _valid_activity(**overrides):
 
 # --- submit validation ---
 
-@pytest.mark.asyncio
 async def test_submit_requires_actor(bus):
     """submit raises InvalidActivityError when actor is missing."""
     activity = {"type": "Create", "id": "https://example.com/1"}
@@ -52,7 +51,6 @@ async def test_submit_requires_actor(bus):
         await bus.submit(activity)
 
 
-@pytest.mark.asyncio
 async def test_submit_requires_type(bus):
     """submit raises InvalidActivityError when type is missing."""
     activity = {"actor": "https://example.com/users/alice", "id": "https://example.com/1"}
@@ -60,7 +58,6 @@ async def test_submit_requires_type(bus):
         await bus.submit(activity)
 
 
-@pytest.mark.asyncio
 async def test_submit_requires_id(bus):
     """submit raises InvalidActivityError when id is missing."""
     activity = {"type": "Create", "actor": "https://example.com/users/alice"}
@@ -70,7 +67,6 @@ async def test_submit_requires_id(bus):
 
 # --- submit stores and enqueues ---
 
-@pytest.mark.asyncio
 async def test_submit_stores_and_enqueues(bus, store):
     """submit stores the activity and enqueues it for processing."""
     activity = _valid_activity()
@@ -85,7 +81,6 @@ async def test_submit_stores_and_enqueues(bus, store):
     assert bus.queue.qsize() == 1
 
 
-@pytest.mark.asyncio
 async def test_submit_sets_published_if_missing(bus):
     """submit sets a published timestamp when one is not provided."""
     activity = _valid_activity()
@@ -95,7 +90,6 @@ async def test_submit_sets_published_if_missing(bus):
     assert "published" in result
 
 
-@pytest.mark.asyncio
 async def test_submit_preserves_existing_published(bus):
     """submit preserves an existing published timestamp."""
     activity = _valid_activity(published="2025-01-01T00:00:00Z")
@@ -103,7 +97,6 @@ async def test_submit_preserves_existing_published(bus):
     assert result["published"] == "2025-01-01T00:00:00Z"
 
 
-@pytest.mark.asyncio
 async def test_submit_initializes_result(bus):
     """submit initializes the result field to an empty list."""
     activity = _valid_activity()
@@ -113,14 +106,12 @@ async def test_submit_initializes_result(bus):
 
 # --- process_next ---
 
-@pytest.mark.asyncio
 async def test_process_next_returns_none_if_empty(bus):
     """process_next returns None when the queue is empty."""
     result = await bus.process_next()
     assert result is None
 
 
-@pytest.mark.asyncio
 async def test_process_next_processes_and_returns(bus):
     """process_next dequeues an activity, processes it, and returns it."""
     activity = _valid_activity()
@@ -134,7 +125,6 @@ async def test_process_next_processes_and_returns(bus):
 
 # --- process matching and execution ---
 
-@pytest.mark.asyncio
 async def test_process_matches_behavior_by_pattern(bus):
     """process uses ld.frame to match activities against behavior patterns."""
     matched = []
@@ -150,7 +140,6 @@ async def test_process_matches_behavior_by_pattern(bus):
     assert submitted["id"] in matched
 
 
-@pytest.mark.asyncio
 async def test_process_executes_behavior_function(bus):
     """process calls the matched behavior function with the activity."""
 
@@ -165,7 +154,6 @@ async def test_process_executes_behavior_function(bus):
     assert any(r.get("content") == "handled" for r in result["result"])
 
 
-@pytest.mark.asyncio
 async def test_process_handles_behavior_error(bus, store):
     """process converts activity to a tombstone when a behavior raises."""
 

@@ -1,6 +1,15 @@
 from activity_serve.core.ld import frame
 
 
+def make_note(id="https://example.com/note/1", content="Hello world"):
+    """Create a simple Note object for testing."""
+    return {
+        "id": id,
+        "type": "Note",
+        "content": content,
+    }
+
+
 def assert_response(
     response,
     expected,

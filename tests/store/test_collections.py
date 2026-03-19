@@ -5,6 +5,7 @@ import pytest
 from activity_serve.store import ActivityStore
 from activity_serve.store.query import Query
 from activity_serve.store.backends.memory import InMemoryStorageBackend, InMemoryCacheBackend
+from tests.helpers import make_note
 
 
 @pytest.fixture
@@ -16,18 +17,9 @@ async def store():
     await s.teardown(delete_all_backend_data=True)
 
 
-def _make_note(id="https://example.com/note/1", content="Hello"):
-    return {
-        "id": id,
-        "type": "Note",
-        "content": content,
-    }
-
-
-@pytest.mark.asyncio(loop_scope="function")
 async def test_add_to_collection(store):
     """Adding an object to a collection makes it queryable in that collection."""
-    note = _make_note()
+    note = make_note()
     await store.add_to_collection(note, "inbox")
 
     results = await store.query(Query(collection="inbox"))
@@ -35,10 +27,9 @@ async def test_add_to_collection(store):
     assert results["items"][0]["id"] == "https://example.com/note/1"
 
 
-@pytest.mark.asyncio(loop_scope="function")
 async def test_remove_from_collection(store):
     """Removing an object from a collection makes it no longer queryable there."""
-    note = _make_note()
+    note = make_note()
     await store.add_to_collection(note, "inbox")
     await store.remove_from_collection("https://example.com/note/1", "inbox")
 
@@ -46,11 +37,10 @@ async def test_remove_from_collection(store):
     assert results["totalItems"] == 0
 
 
-@pytest.mark.asyncio(loop_scope="function")
 async def test_query_with_collection_filter(store):
     """Querying with a collection filter only returns objects in that collection."""
-    note1 = _make_note(id="https://example.com/note/1")
-    note2 = _make_note(id="https://example.com/note/2")
+    note1 = make_note(id="https://example.com/note/1")
+    note2 = make_note(id="https://example.com/note/2")
 
     await store.add_to_collection(note1, "inbox")
     await store.add_to_collection(note2, "outbox")
@@ -64,10 +54,9 @@ async def test_query_with_collection_filter(store):
     assert outbox_results["items"][0]["id"] == "https://example.com/note/2"
 
 
-@pytest.mark.asyncio(loop_scope="function")
 async def test_add_to_collection_stores_full_object(store):
     """Adding to a collection stores the full object."""
-    note = _make_note()
+    note = make_note(content="Hello")
     note["name"] = "Test Note"
     await store.add_to_collection(note, "inbox")
 
