@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from app.api.auth import User, UserMaybe
+from activity_serve.api.auth import User, UserMaybe
 
 
 @pytest.fixture

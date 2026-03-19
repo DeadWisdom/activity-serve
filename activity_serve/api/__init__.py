@@ -1,10 +1,10 @@
 from fastapi import APIRouter
 from fastapi.responses import ORJSONResponse
 
-from app.api.health import router as health_router
-from app.api.admin import router as admin_router
-from app.api.user import router as user_router
-from app.api.query import router as query_router
+from activity_serve.api.health import router as health_router
+from activity_serve.api.admin import router as admin_router
+from activity_serve.api.user import router as user_router
+from activity_serve.api.query import router as query_router
 
 
 class ActivityStreamResponse(ORJSONResponse):

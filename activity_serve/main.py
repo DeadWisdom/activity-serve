@@ -1,10 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.core.settings import Settings
-from app.api import router as api_router
-from app.middleware.logging import LoggingMiddleware
-from app.middleware.normalize import NormalizeMiddleware
+from activity_serve.core.settings import Settings
+from activity_serve.api import router as api_router
+from activity_serve.middleware.logging import LoggingMiddleware
+from activity_serve.middleware.normalize import NormalizeMiddleware
 
 settings = Settings()
 

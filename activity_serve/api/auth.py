@@ -2,8 +2,8 @@ from typing import Any, Annotated
 from fastapi import Depends, Request, HTTPException
 from starlette.status import HTTP_401_UNAUTHORIZED
 
-from app.services.firebase import verify_id_token
-from app.services.user import get_or_create_user
+from activity_serve.services.firebase import verify_id_token
+from activity_serve.services.user import get_or_create_user
 
 # Used for testing or development purposes
 _STOCK_TOKENS = {}

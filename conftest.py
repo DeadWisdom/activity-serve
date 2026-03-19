@@ -8,9 +8,9 @@ from pathlib import PurePosixPath
 # Set test environment variables before any app imports
 os.environ["SESSION_COOKIE_SECURE"] = "false"
 
-from app.main import create_app
-from app.core.settings import Settings
-from app.api.auth import add_stock_token
+from activity_serve.main import create_app
+from activity_serve.core.settings import Settings
+from activity_serve.api.auth import add_stock_token
 
 from activity_store.backends.memory import InMemoryStorageBackend
 

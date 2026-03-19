@@ -3,8 +3,8 @@
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 import structlog
-from app.services.auth import verify_auth_token
-from app.services.user import get_user_by_id
+from activity_serve.services.auth import verify_auth_token
+from activity_serve.services.user import get_user_by_id
 
 from typing import Any
 from datetime import timedelta
