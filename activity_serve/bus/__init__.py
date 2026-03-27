@@ -4,6 +4,8 @@ from .behaviors import when
 from .bus import ActivityBus
 from .errors import (
     ActivityBusError,
+    ActivityConflict,
+    ActivityExists,
     ActivityIdError,
     BehaviorExecutionError,
     InvalidActivityError,
@@ -12,6 +14,8 @@ from .errors import (
 __all__ = [
     "ActivityBus",
     "ActivityBusError",
+    "ActivityConflict",
+    "ActivityExists",
     "ActivityIdError",
     "BehaviorExecutionError",
     "InvalidActivityError",

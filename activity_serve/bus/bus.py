@@ -2,6 +2,7 @@
 
 import asyncio
 import datetime
+import inspect
 import traceback
 from typing import Any
 
@@ -9,7 +10,14 @@ from activity_serve.core.ld import frame
 from activity_serve.store import ActivityStore
 
 from .behaviors import get_all_behaviors
-from .errors import BehaviorExecutionError, InvalidActivityError
+from .errors import ActivityConflict, ActivityExists, BehaviorExecutionError, InvalidActivityError
+
+_SERVER_FIELDS = {"published", "@context", "result", "context"}
+
+
+def _strip_server_fields(activity: dict) -> dict:
+    """Return a copy of the activity without server-assigned fields."""
+    return {k: v for k, v in activity.items() if k not in _SERVER_FIELDS}
 
 
 class ActivityBus:
@@ -39,6 +47,13 @@ class ActivityBus:
 
         if "id" not in activity:
             raise InvalidActivityError("Activity must have an 'id'")
+
+        # Check for existing activity with same ID (idempotency)
+        existing = await self.store.dereference(activity["id"])
+        if existing is not None:
+            if _strip_server_fields(existing) == _strip_server_fields(activity):
+                raise ActivityExists(existing)
+            raise ActivityConflict(f"Activity {activity['id']} already exists with different content")
 
         if "published" not in activity:
             activity["published"] = datetime.datetime.now(datetime.UTC).isoformat()
@@ -82,13 +97,18 @@ class ActivityBus:
                 try:
                     function = behavior_data["_function"]
                     result = function(activity)
+                    if inspect.isawaitable(result):
+                        result = await result
 
                     if isinstance(result, list):
                         for new_activity in result:
                             if isinstance(new_activity, dict) and "type" in new_activity:
                                 if "context" not in new_activity:
                                     new_activity["context"] = activity["id"]
-                                await self.submit(new_activity)
+                                try:
+                                    await self.submit(new_activity)
+                                except ActivityExists:
+                                    pass
 
                 except Exception as e:
                     error = {

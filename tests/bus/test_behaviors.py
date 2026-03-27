@@ -1,5 +1,7 @@
 """Tests for the @when decorator and get_all_behaviors."""
 
+import inspect
+
 import pytest
 
 from activity_serve.bus.behaviors import when, get_all_behaviors
@@ -78,3 +80,13 @@ def test_decorated_function_still_callable():
 
     result = process({"type": "Test"})
     assert result["processed"] is True
+
+
+def test_async_decorated_function_is_awaitable():
+    """An async @when-decorated function remains a coroutine function."""
+
+    @when({"type": "Test"})
+    async def async_process(activity):
+        return activity
+
+    assert inspect.iscoroutinefunction(async_process)

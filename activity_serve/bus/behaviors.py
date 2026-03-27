@@ -15,9 +15,14 @@ def when(pattern: dict[str, Any], *, id: str | None = None):
     """
 
     def decorator(func: Callable):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            return func(*args, **kwargs)
+        if inspect.iscoroutinefunction(func):
+            @wraps(func)
+            async def wrapper(*args, **kwargs):
+                return await func(*args, **kwargs)
+        else:
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                return func(*args, **kwargs)
 
         # Generate ID from module and function name if not provided
         behavior_id = id

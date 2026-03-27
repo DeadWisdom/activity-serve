@@ -107,30 +107,29 @@ async def create_identity(store: ActivityStore, claims: dict[str, Any], user: di
     return identity
 
 
-async def get_or_create_user(claims: str) -> dict[str, Any]:
+async def get_or_create_user(store: ActivityStore, claims: str) -> dict[str, Any]:
     """Get a user from an OAuth token, create the user if needed."""
     if not claims.get("sub").strip():
         raise ValueError("Auth claims do not include a subject 'sub' field")
 
     identity_id = get_identity_id(claims)
 
-    async with ActivityStore() as store:
-        # Check if user already exists by looking up identity
-        identity = await store.dereference(identity_id)
-        if identity:
-            user = await store.dereference(identity.get("attributedTo"))
-            if user:
-                return user
-            else:
-                pass
-                # This should not happen, but if it does, just remake everything
+    # Check if user already exists by looking up identity
+    identity = await store.dereference(identity_id)
+    if identity:
+        user = await store.dereference(identity.get("attributedTo"))
+        if user:
+            return user
+        else:
+            pass
+            # This should not happen, but if it does, just remake everything
 
-        user = await create_user(store, name=claims.get("name"), image=claims.get("picture"))
-        identity = await create_identity(
-            store=store,
-            claims=claims,
-            user=user,
-        )
+    user = await create_user(store, name=claims.get("name"), image=claims.get("picture"))
+    identity = await create_identity(
+        store=store,
+        claims=claims,
+        user=user,
+    )
 
-        # Return the user
-        return user
+    # Return the user
+    return user

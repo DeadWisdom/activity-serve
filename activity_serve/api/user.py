@@ -2,9 +2,12 @@ from nanoid import generate
 from typing import Dict, Any
 from fastapi import APIRouter, HTTPException, Request, Body
 
+from fastapi.responses import ORJSONResponse
+
 from activity_serve.store import ActivityStore
 from activity_serve.core.utils import first_id
 from activity_serve.bus import ActivityBus
+from activity_serve.bus.errors import ActivityExists, ActivityConflict
 from .auth import User, UserMaybe
 
 
@@ -53,7 +56,7 @@ async def get_outbox(user_key: str, sort: str="published:desc", after: Any=None)
         return outbox
 
 
-@router.post("/u/{user_key}/outbox")
+@router.post("/u/{user_key}/outbox", status_code=201)
 async def post_to_outbox(
     user_key: str,
     user: User,
@@ -83,7 +86,12 @@ async def post_to_outbox(
             activity["id"] = f"{user['id']}/activities/{generate()}"
 
         # Submit the activity to the bus
-        result = await ActivityBus(store=store).submit(activity)
+        try:
+            result = await ActivityBus(store=store).submit(activity)
+        except ActivityExists as e:
+            return ORJSONResponse(content=e.existing_activity, status_code=200)
+        except ActivityConflict:
+            raise HTTPException(status_code=409, detail="Activity with this ID already exists with different content")
 
         # Add to the outbox collection
         await store.add_to_collection(result, f"/u/{user_key}/outbox")

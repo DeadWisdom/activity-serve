@@ -71,3 +71,10 @@ def test_query_type_accepts_list():
     """Query type field accepts a list of strings."""
     q = Query(type=["Note", "Article"])
     assert q.type == ["Note", "Article"]
+
+
+def test_query_keywords_has_description():
+    """Keywords field has a description documenting its purpose."""
+    field_info = Query.model_fields["keywords"]
+    assert field_info.description is not None
+    assert len(field_info.description) > 0

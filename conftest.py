@@ -66,7 +66,8 @@ def reset_store_defaults():
 
 @pytest.fixture
 def app(settings):
-    return create_app()
+    store = ActivityStore()
+    return create_app(store=store)
 
 
 @pytest.fixture

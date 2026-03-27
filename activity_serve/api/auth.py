@@ -4,6 +4,7 @@ from starlette.status import HTTP_401_UNAUTHORIZED
 
 from activity_serve.services.firebase import verify_id_token
 from activity_serve.services.user import get_or_create_user
+from activity_serve.store import ActivityStore
 
 # Used for testing or development purposes
 _STOCK_TOKENS = {}
@@ -58,7 +59,8 @@ async def get_user(request: Request) -> "User":
     Get the user information from the auth data.
     """
     auth = request.headers.get("Authorization", "").strip()
-    return await get_or_create_user(verify_auth_token(auth))
+    async with ActivityStore() as store:
+        return await get_or_create_user(store, verify_auth_token(auth))
 
 
 async def get_user_maybe(request: Request) -> "UserMaybe":
@@ -70,7 +72,8 @@ async def get_user_maybe(request: Request) -> "UserMaybe":
         return None
 
     auth = request.headers.get("Authorization", "").strip()
-    return await get_or_create_user(verify_auth_token(auth))
+    async with ActivityStore() as store:
+        return await get_or_create_user(store, verify_auth_token(auth))
 
 
 User = Annotated[dict[str, Any], Depends(get_user)]

@@ -2,14 +2,20 @@
 
 from typing import Optional, Union
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class Query(BaseModel):
     """Pydantic model representing a query against the activity store."""
 
     text: Optional[str] = None
-    keywords: Optional[str] = None
+    keywords: Optional[str] = Field(
+        None,
+        description=(
+            "Backend-interpreted filter field. Each backend may read this differently — "
+            "for example, as keyword search terms, key:value filter pairs, or tag matches."
+        ),
+    )
     sort: Optional[str] = None
     size: int = 10
     after: Optional[str] = None
