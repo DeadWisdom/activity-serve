@@ -12,4 +12,7 @@ def __getattr__(name):
     if name == "RedisCacheBackend":
         from activity_serve.store.backends.redis import RedisCacheBackend
         return RedisCacheBackend
+    if name == "FirestoreBackend":
+        from activity_serve.store.backends.firestore import FirestoreBackend
+        return FirestoreBackend
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
