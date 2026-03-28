@@ -93,7 +93,11 @@ class ActivityBus:
         behaviors = get_all_behaviors()
 
         for behavior_id, behavior_data in behaviors.items():
-            if frame(activity, behavior_data["when"], require_match=True):
+            try:
+                matched = frame(activity, behavior_data["when"], require_match=True)
+            except Exception:
+                matched = None
+            if matched:
                 try:
                     function = behavior_data["_function"]
                     result = function(activity)

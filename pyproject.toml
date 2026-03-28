@@ -31,6 +31,9 @@ dev = [
     "ruff>=0.4.0",
 ]
 
+[tool.setuptools.packages.find]
+include = ["activity_serve*"]
+
 [tool.pytest]
 testpaths = ["tests"]
 pythonpath = ["."]

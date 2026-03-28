@@ -168,6 +168,9 @@ def create_router(store: ActivityStore, bus: ActivityBus) -> APIRouter:
         except ActivityConflict:
             raise HTTPException(status_code=409, detail="Activity with this ID already exists with different content")
 
+        # Process queued behaviors
+        await bus.process_next()
+
         # Add to the outbox collection
         await store.add_to_collection(result, f"/u/{user_key}/outbox")
 

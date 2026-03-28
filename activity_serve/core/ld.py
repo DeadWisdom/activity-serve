@@ -2,7 +2,6 @@ from datetime import datetime
 from functools import lru_cache
 from typing import Any, Callable
 
-import hishel
 import orjson
 from pyld import jsonld
 
@@ -31,24 +30,24 @@ jsonld._is_numeric = _is_numeric_or_datetime
 
 
 ### Override JSONLD Loader
-storage = hishel.FileStorage()
 
 
 @lru_cache(maxsize=512)
 def load_url(url):
+    import httpx
+
     headers = {
         "Accept": "application/ld+json;profile=http://www.w3.org/ns/json-ld#context, application/ld+json, application/json"
     }
     if not any(url.startswith(x) for x in ALLOWED_URLS):
         raise ValueError(f"Remote document not in allowed domain: {url}")
 
-    with hishel.CacheClient(storage=storage) as client:
-        response = client.get(url, headers=headers)
+    response = httpx.get(url, headers=headers)
 
     return {
         "contentType": response.headers.get("content-type", "application/ld+json"),
         "contextUrl": None,
-        "documentUrl": response.url,
+        "documentUrl": str(response.url),
         "document": orjson.loads(response.content),
     }
 

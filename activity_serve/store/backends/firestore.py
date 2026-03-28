@@ -56,17 +56,39 @@ class FirestoreBackend(StorageBackend):
             await batch.commit()
 
     async def add(self, obj: dict, collection: Optional[str] = None) -> None:
-        """Store an object, optionally associating it with a collection."""
+        """Store an object, optionally associating it with a collection.
+
+        When storing to the main collection (no collection arg), any existing
+        collection entries for this object are also updated to stay in sync.
+        """
         object_id = obj["id"]
         if collection is None:
             doc_ref = self.client.collection(self.objects_collection).document(_doc_id(object_id))
             await doc_ref.set(obj)
+            # Sync any collection entries that reference this object
+            await self._sync_collection_entries(object_id, obj)
         else:
             doc = {**obj, "_collection": collection}
             doc_ref = self.client.collection(self.collections_collection).document(
                 _collection_doc_id(object_id, collection)
             )
             await doc_ref.set(doc)
+
+    async def _sync_collection_entries(self, object_id: str, obj: dict) -> None:
+        """Update all collection entries for an object with the latest data."""
+        coll_ref = self.client.collection(self.collections_collection)
+        # Find all collection entries that have this object's id
+        query = coll_ref.where(filter=FieldFilter("id", "==", object_id))
+        docs = [doc async for doc in query.stream()]
+        if not docs:
+            return
+        batch = self.client.batch()
+        for doc in docs:
+            existing = doc.to_dict()
+            collection_name = existing.get("_collection")
+            updated = {**obj, "_collection": collection_name}
+            batch.update(doc.reference, updated)
+        await batch.commit()
 
     async def get(self, object_id: str) -> Optional[dict]:
         """Retrieve an object by its id, or None if not found."""
