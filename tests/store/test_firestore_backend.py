@@ -93,6 +93,41 @@ async def test_add_to_collection(firestore_backend):
     assert results["items"][0]["id"] == "https://example.com/note/1"
 
 
+async def test_add_and_query_url_based_collection(firestore_backend):
+    """Collections with URL paths get the same sites/ prefix treatment as object ids."""
+    obj = {"id": "https://firemark.social/users/ted/outbox/abc", "type": "Create"}
+    await firestore_backend.add(obj, collection="https://firemark.social/users/ted/outbox")
+
+    query = Query(collection="https://firemark.social/users/ted/outbox")
+    results = await firestore_backend.query(query)
+    assert results["totalItems"] == 1
+    assert results["items"][0]["id"] == "https://firemark.social/users/ted/outbox/abc"
+
+
+async def test_url_collection_uses_natural_key_for_child(firestore_backend):
+    """When an object id is a direct child of a URL-based collection, the natural key is used."""
+    from activity_serve.store.backends.firestore import _normalize_collection, _collection_doc_key
+
+    collection = "https://firemark.social/users/ted/outbox"
+    object_id = "https://firemark.social/users/ted/outbox/abc"
+
+    col_parts = _normalize_collection(collection)
+    key = _collection_doc_key(object_id, col_parts)
+    # Should use natural key "abc", not a hash
+    assert key == "abc"
+
+
+async def test_remove_from_url_based_collection(firestore_backend):
+    """Remove works with URL-based collection paths."""
+    obj = {"id": "https://example.com/1", "type": "Note"}
+    await firestore_backend.add(obj, collection="https://firemark.social/users/ted/inbox")
+    await firestore_backend.remove("https://example.com/1", collection="https://firemark.social/users/ted/inbox")
+
+    query = Query(collection="https://firemark.social/users/ted/inbox")
+    results = await firestore_backend.query(query)
+    assert results["totalItems"] == 0
+
+
 async def test_collection_item_with_matching_prefix(firestore_backend):
     """Object whose id starts with the collection path uses the natural key."""
     obj = {"id": "/users/ted/outbox/abc123", "type": "Create"}

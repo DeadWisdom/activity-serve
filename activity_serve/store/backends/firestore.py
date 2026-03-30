@@ -66,8 +66,19 @@ def _collection_doc_key(object_id: str, collection_parts: tuple[str, ...]) -> st
 
 
 def _normalize_collection(collection: str) -> tuple[str, ...]:
-    """Normalize a collection path string into Firestore path segments."""
-    parts = tuple(p for p in collection.strip("/").split("/") if p)
+    """Normalize a collection path string into Firestore path segments.
+
+    Applies the same URL-to-path transformation as _id_to_path:
+    URLs get their scheme stripped and a "sites/" prefix added.
+    """
+    stripped = _URL_SCHEME_RE.sub("", collection)
+    is_url = stripped != collection
+
+    parts = tuple(p for p in stripped.split("/") if p)
+
+    if is_url:
+        parts = ("sites",) + parts
+
     return parts
 
 
