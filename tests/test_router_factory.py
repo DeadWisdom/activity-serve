@@ -97,9 +97,11 @@ def test_create_router_outbox_uses_provided_bus():
             json={"type": "Create", "actor": user["id"], "object": {"type": "Note", "content": "test"}},
         )
         assert response.status_code == 201
+        result = response.json()
 
-        # The bus should have enqueued it
-        assert bus.queue.qsize() == 1
+        # The bus processed it (queue drained) and the activity is in the store
+        assert bus.queue.qsize() == 0
+        assert result["type"] == "Create"
 
 
 def test_library_usage_pattern():

@@ -1,7 +1,9 @@
 """Firestore-backed storage for activity objects using the async Firestore client."""
 
+import base64
 import hashlib
 import os
+import re
 from typing import Optional
 
 from google.cloud.firestore_v1.async_client import AsyncClient
@@ -10,16 +12,63 @@ from google.cloud.firestore_v1.base_query import FieldFilter
 from activity_serve.store.interfaces import StorageBackend
 from activity_serve.store.query import Query
 
-
-def _doc_id(object_id: str) -> str:
-    """Produce a safe Firestore document id from an object id (which may be a URL)."""
-    return hashlib.sha256(object_id.encode()).hexdigest()
+_URL_SCHEME_RE = re.compile(r"^https?://")
 
 
-def _collection_doc_id(object_id: str, collection: str) -> str:
-    """Produce a unique document id for a collection membership entry."""
-    raw = f"{collection}::{object_id}"
-    return hashlib.sha256(raw.encode()).hexdigest()
+def _short_hash(value: str) -> str:
+    """Produce a compact, URL-safe hash of a string for use as a Firestore document key."""
+    digest = hashlib.sha256(value.encode("utf-8")).digest()
+    return base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+
+
+def _id_to_path(object_id: str) -> tuple[str, ...]:
+    """Convert an object id into a Firestore document path (alternating collection/doc segments).
+
+    - Path-based ids like "/users/ted" become ("users", "ted").
+    - URL ids like "https://firemark.social/users/ted" become ("sites", "firemark.social", "users", "ted").
+
+    Raises ValueError if the resulting path has an odd number of segments.
+    """
+    stripped = _URL_SCHEME_RE.sub("", object_id)
+    is_url = stripped != object_id
+
+    # Remove leading/trailing slashes and split
+    parts = tuple(p for p in stripped.split("/") if p)
+
+    if is_url:
+        parts = ("sites",) + parts
+
+    if len(parts) % 2 != 0:
+        raise ValueError(
+            f"Object id must resolve to an even number of path segments, "
+            f"got {len(parts)} from '{object_id}'"
+        )
+
+    return parts
+
+
+def _collection_doc_key(object_id: str, collection_parts: tuple[str, ...]) -> str:
+    """Determine the document key for an object within a collection.
+
+    If the object id path starts with the collection path, the natural last
+    segment is used as the key. Otherwise, the object id is hashed.
+    """
+    try:
+        id_parts = _id_to_path(object_id)
+    except ValueError:
+        return _short_hash(object_id)
+
+    # If the id is a direct child of the collection, use the natural key
+    if id_parts[:-1] == collection_parts and len(id_parts) == len(collection_parts) + 1:
+        return id_parts[-1]
+
+    return _short_hash(object_id)
+
+
+def _normalize_collection(collection: str) -> tuple[str, ...]:
+    """Normalize a collection path string into Firestore path segments."""
+    parts = tuple(p for p in collection.strip("/").split("/") if p)
+    return parts
 
 
 class FirestoreBackend(StorageBackend):
@@ -27,55 +76,40 @@ class FirestoreBackend(StorageBackend):
 
     def __init__(
         self,
-        project: Optional[str] = None,
-        collection_prefix: str = "activity_store",
+        project: str | None = None,
+        database: str | None = None,
     ):
         self.project = project or os.environ.get("FIRESTORE_PROJECT", "activity-serve")
-        self.collection_prefix = collection_prefix
-        self.objects_collection = f"{collection_prefix}_objects"
-        self.collections_collection = f"{collection_prefix}_collections"
-        self.client = AsyncClient(project=self.project)
+        self.client = AsyncClient(project=self.project, database=database)
 
     async def teardown(self) -> None:
-        """Delete all documents from both Firestore collections."""
-        for coll_name in (self.objects_collection, self.collections_collection):
-            await self._delete_all_docs(coll_name)
-
-    async def _delete_all_docs(self, collection_name: str) -> None:
-        """Delete all documents in a Firestore collection."""
-        coll_ref = self.client.collection(collection_name)
-        batch_size = 100
-        while True:
-            docs = coll_ref.limit(batch_size)
-            doc_snapshots = [doc async for doc in docs.stream()]
-            if not doc_snapshots:
-                break
-            batch = self.client.batch()
-            for doc in doc_snapshots:
-                batch.delete(doc.reference)
-            await batch.commit()
+        """Delete all documents and collections."""
+        async for col_ref in self.client.collections():
+            await self.client.recursive_delete(col_ref)
 
     async def add(self, obj: dict, collection: Optional[str] = None) -> None:
-        """Store an object, optionally associating it with a collection.
+        """Store an object, optionally adding it to a collection.
 
-        When storing to the main collection (no collection arg), any existing
-        collection entries for this object are also updated to stay in sync.
+        Canonical storage (collection=None) places the object at its id-derived
+        Firestore path. Collection storage places it under the collection path
+        with a key derived from the object id.
         """
         object_id = obj["id"]
+
         if collection is None:
-            doc_ref = self.client.collection(self.objects_collection).document(_doc_id(object_id))
+            path = _id_to_path(object_id)
+            doc_ref = self.client.document(*path)
             await doc_ref.set(obj)
         else:
-            doc = {**obj, "_collection": collection}
-            doc_ref = self.client.collection(self.collections_collection).document(
-                _collection_doc_id(object_id, collection)
-            )
-            await doc_ref.set(doc)
+            col_parts = _normalize_collection(collection)
+            key = _collection_doc_key(object_id, col_parts)
+            col_ref = self.client.collection("/".join(col_parts))
+            await col_ref.document(key).set(obj)
 
     async def get(self, object_id: str) -> Optional[dict]:
-        """Retrieve an object by its id, or None if not found."""
-        doc_ref = self.client.collection(self.objects_collection).document(_doc_id(object_id))
-        doc = await doc_ref.get()
+        """Retrieve a canonically stored object by its id, or None if not found."""
+        path = _id_to_path(object_id)
+        doc = await self.client.document(*path).get()
         if not doc.exists:
             return None
         return doc.to_dict()
@@ -83,22 +117,24 @@ class FirestoreBackend(StorageBackend):
     async def remove(self, object_id: str, collection: Optional[str] = None) -> None:
         """Remove an object by id. If collection is given, only remove from that collection."""
         if collection is None:
-            doc_ref = self.client.collection(self.objects_collection).document(_doc_id(object_id))
+            path = _id_to_path(object_id)
+            await self.client.document(*path).delete()
         else:
-            doc_ref = self.client.collection(self.collections_collection).document(
-                _collection_doc_id(object_id, collection)
-            )
-        await doc_ref.delete()
+            col_parts = _normalize_collection(collection)
+            key = _collection_doc_key(object_id, col_parts)
+            col_ref = self.client.collection("/".join(col_parts))
+            await col_ref.document(key).delete()
 
     async def query(self, query: Query) -> dict:
         """Query stored objects, returning a dict with totalItems and items."""
-        if query.collection is not None:
-            return await self._query_collection(query)
-        return await self._query_objects(query)
+        if query.collection is None:
+            return {"totalItems": 0, "items": []}
+        return await self._query_collection(query)
 
-    async def _query_objects(self, query: Query) -> dict:
-        """Query the main objects collection."""
-        coll_ref = self.client.collection(self.objects_collection)
+    async def _query_collection(self, query: Query) -> dict:
+        """Query a Firestore collection, optionally filtering by type."""
+        col_parts = _normalize_collection(query.collection)
+        coll_ref = self.client.collection("/".join(col_parts))
 
         if query.type is not None:
             if isinstance(query.type, list):
@@ -109,24 +145,4 @@ class FirestoreBackend(StorageBackend):
         docs = [doc async for doc in coll_ref.stream()]
         total = len(docs)
         items = [doc.to_dict() for doc in docs[: query.size]]
-        return {"totalItems": total, "items": items}
-
-    async def _query_collection(self, query: Query) -> dict:
-        """Query the collections collection filtered by collection name."""
-        coll_ref = self.client.collection(self.collections_collection)
-        coll_ref = coll_ref.where(filter=FieldFilter("_collection", "==", query.collection))
-
-        if query.type is not None:
-            if isinstance(query.type, list):
-                coll_ref = coll_ref.where(filter=FieldFilter("type", "in", query.type))
-            else:
-                coll_ref = coll_ref.where(filter=FieldFilter("type", "==", query.type))
-
-        docs = [doc async for doc in coll_ref.stream()]
-        total = len(docs)
-        items = []
-        for doc in docs[: query.size]:
-            data = doc.to_dict()
-            data.pop("_collection", None)
-            items.append(data)
         return {"totalItems": total, "items": items}
