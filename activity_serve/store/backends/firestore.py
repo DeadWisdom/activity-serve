@@ -143,17 +143,32 @@ class FirestoreBackend(StorageBackend):
         return await self._query_collection(query)
 
     async def _query_collection(self, query: Query) -> dict:
-        """Query a Firestore collection, optionally filtering by type."""
+        """Query a Firestore collection with optional type filter, sort, and cursor."""
         col_parts = _normalize_collection(query.collection)
-        coll_ref = self.client.collection("/".join(col_parts))
+        q = self.client.collection("/".join(col_parts))
 
+        # Type filter
         if query.type is not None:
             if isinstance(query.type, list):
-                coll_ref = coll_ref.where(filter=FieldFilter("type", "in", query.type))
+                q = q.where(filter=FieldFilter("type", "in", query.type))
             else:
-                coll_ref = coll_ref.where(filter=FieldFilter("type", "==", query.type))
+                q = q.where(filter=FieldFilter("type", "==", query.type))
 
-        docs = [doc async for doc in coll_ref.stream()]
-        total = len(docs)
-        items = [doc.to_dict() for doc in docs[: query.size]]
-        return {"totalItems": total, "items": items}
+        # Sort (e.g., "published:desc" or "published:asc")
+        if query.sort:
+            parts = query.sort.split(":")
+            field = parts[0]
+            from google.cloud.firestore_v1 import query as fquery
+            direction = fquery.Query.DESCENDING if len(parts) > 1 and parts[1].lower() == "desc" else fquery.Query.ASCENDING
+            q = q.order_by(field, direction=direction)
+
+            # Cursor pagination — "after" is the value to start after
+            if query.after:
+                q = q.start_after({field: query.after})
+
+        # Limit
+        q = q.limit(query.size)
+
+        docs = [doc async for doc in q.stream()]
+        items = [doc.to_dict() for doc in docs]
+        return {"totalItems": len(items), "items": items}

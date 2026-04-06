@@ -53,6 +53,18 @@ class InMemoryStorageBackend(StorageBackend):
             else:
                 items = [o for o in items if o.get("type") == query.type]
 
+        # Sort
+        if query.sort:
+            parts = query.sort.split(":")
+            field = parts[0]
+            reverse = len(parts) > 1 and parts[1].lower() == "desc"
+            items.sort(key=lambda o: o.get(field, ""), reverse=reverse)
+
+        # Cursor pagination
+        if query.after and query.sort:
+            field = query.sort.split(":")[0]
+            items = [o for o in items if o.get(field, "") > query.after] if "desc" not in query.sort else [o for o in items if o.get(field, "") < query.after]
+
         total = len(items)
         items = items[:query.size]
 
