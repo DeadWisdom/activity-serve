@@ -169,6 +169,11 @@ class FirestoreBackend(StorageBackend):
         # Limit
         q = q.limit(query.size)
 
-        docs = [doc async for doc in q.stream()]
+        try:
+            docs = [doc async for doc in q.stream()]
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error("Firestore query failed: %s", e)
+            return {"totalItems": 0, "items": []}
         items = [doc.to_dict() for doc in docs]
         return {"totalItems": len(items), "items": items}
