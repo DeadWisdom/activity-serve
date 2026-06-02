@@ -26,7 +26,10 @@ def get_identity_id(claims: dict[str, Any]) -> str:
     hsh.update(claims.get("sub").encode())
     hsh.update(claims.get("iss").encode())
     key = hsh.hexdigest()[:48]
-    return f"/auth/identities/{key}"
+    # Must be an even number of path segments so the path-based Firestore
+    # backend can map it to a document (collection/doc). "/auth/identities/{key}"
+    # was 3 segments and raised ValueError in _id_to_path.
+    return f"/identities/{key}"
 
 
 async def create_user(
@@ -53,34 +56,16 @@ async def create_user(
     if image:
         user["image"] = image
 
-    # Add inbox and outbox references
+    # Add inbox and outbox references. The collections themselves are not
+    # stored as standalone documents: their ids ("/u/{key}/inbox") are 3-segment
+    # (odd) paths that the path-based Firestore backend can't store as docs, and
+    # the API synthesizes the OrderedCollection from the subcollection on read
+    # (see get_outbox in api/router.py).
     user["inbox"] = f"{user_id}/inbox"
     user["outbox"] = f"{user_id}/outbox"
 
     # Create the user in the activity store
     await store.store(user)
-
-    # Create inbox and outbox collections
-    inbox = {
-        "@context": "https://www.w3.org/ns/activitystreams",
-        "id": f"{user_id}/inbox",
-        "type": "OrderedCollection",
-        "name": "Inbox",
-        "published": now,
-        "items": [],
-    }
-
-    outbox = {
-        "@context": "https://www.w3.org/ns/activitystreams",
-        "id": f"{user_id}/outbox",
-        "type": "OrderedCollection",
-        "name": "Outbox",
-        "published": now,
-        "items": [],
-    }
-
-    await store.store(inbox)
-    await store.store(outbox)
 
     return user
 

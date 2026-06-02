@@ -106,11 +106,26 @@ def create_router(store: ActivityStore, bus: ActivityBus) -> APIRouter:
         return await store.dereference(user["id"])
 
     @router.get("/u/{user_key}/inbox")
-    async def get_inbox(user_key: str, user: UserMaybe):
-        """Get a user's inbox."""
-        inbox = await store.dereference(f"/u/{user_key}/inbox")
-        if not inbox:
-            raise HTTPException(status_code=404)
+    async def get_inbox(user_key: str, user: UserMaybe, sort: str = "published:desc", after: Any = None):
+        """Get a user's inbox.
+
+        Synthesized from the inbox subcollection (mirrors get_outbox). The inbox
+        OrderedCollection is not stored as a standalone document — its id
+        ("/u/{key}/inbox") is a 3-segment path the backend can't store as a doc.
+        """
+        owner = await store.dereference(f"/u/{user_key}")
+        if not owner:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        inbox = await store.query(
+            collection=f"/u/{user_key}/inbox",
+            sort=sort,
+            after=after,
+        )
+
+        inbox["type"] = "OrderedCollection"
+        inbox["attributedTo"] = owner
+        inbox["id"] = f"/u/{user_key}/inbox"
         return inbox
 
     @router.get("/u/{user_key}/outbox")
