@@ -54,13 +54,29 @@ def verify_auth_token(authorization: str) -> dict[str, Any]:
         raise_for_unauth(str(e))
 
 
+async def _user_from_request(request: Request) -> dict[str, Any]:
+    """Resolve (or create) the activity-serve user for the request's token.
+
+    Prefers the app's configured store (``request.app.state.store``) so the
+    materialized user lands in the same backend the rest of the API reads and
+    writes. Falls back to a throwaway in-memory ``ActivityStore()`` only when
+    the app didn't set one — otherwise a user created here would be invisible
+    to every other handler (e.g. an outbox POST would 404 on the user).
+    """
+    auth = request.headers.get("Authorization", "").strip()
+    claims = verify_auth_token(auth)
+    store = getattr(request.app.state, "store", None)
+    if store is not None:
+        return await get_or_create_user(store, claims)
+    async with ActivityStore() as store:
+        return await get_or_create_user(store, claims)
+
+
 async def get_user(request: Request) -> "User":
     """
     Get the user information from the auth data.
     """
-    auth = request.headers.get("Authorization", "").strip()
-    async with ActivityStore() as store:
-        return await get_or_create_user(store, verify_auth_token(auth))
+    return await _user_from_request(request)
 
 
 async def get_user_maybe(request: Request) -> "UserMaybe":
@@ -71,9 +87,7 @@ async def get_user_maybe(request: Request) -> "UserMaybe":
     if request.headers.get("Authorization") is None:
         return None
 
-    auth = request.headers.get("Authorization", "").strip()
-    async with ActivityStore() as store:
-        return await get_or_create_user(store, verify_auth_token(auth))
+    return await _user_from_request(request)
 
 
 User = Annotated[dict[str, Any], Depends(get_user)]
