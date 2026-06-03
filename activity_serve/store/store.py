@@ -31,9 +31,18 @@ class ActivityStore:
             cls._default_cache = InMemoryCacheBackend()
         return cls._default_cache
 
-    def __init__(self, backend: StorageBackend | None = None, cache: CacheBackend | None = None):
+    def __init__(
+        self,
+        backend: StorageBackend | None = None,
+        cache: CacheBackend | None = None,
+        default_context=None,
+    ):
         self.backend = backend or self._get_default_backend()
         self.cache = cache or self._get_default_cache()
+        # The @context stamped onto objects that arrive without one. Apps with
+        # custom AS2 types pass their own JSON-LD context here so behaviors that
+        # match those types dispatch even for client-posted activities.
+        self.default_context = default_context or ACTIVITYSTREAMS_CONTEXT
 
     async def __aenter__(self):
         return self
@@ -53,9 +62,9 @@ class ActivityStore:
             raise InvalidLDObject("Object must have a 'type' field")
 
     def _ensure_context(self, obj: dict) -> dict:
-        """Add the default ActivityStreams context if none is present."""
+        """Add the store's default context if none is present."""
         if "@context" not in obj:
-            obj["@context"] = ACTIVITYSTREAMS_CONTEXT
+            obj["@context"] = self.default_context
         return obj
 
     async def store(self, obj) -> str:
@@ -119,7 +128,7 @@ class ActivityStore:
             "type": "Tombstone",
             "formerType": obj.get("type"),
             "deleted": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "@context": ACTIVITYSTREAMS_CONTEXT,
+            "@context": self.default_context,
         }
         await self.store(tombstone)
         return tombstone
